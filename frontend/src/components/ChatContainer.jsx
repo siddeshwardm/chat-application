@@ -7,6 +7,25 @@ import MessageSkeleton from "./skeletons/MessageSkeleton";
 import { useAuthStore } from "../store/useAuthStore";
 import { formatMessageTime } from "../lib/utils";
 
+const normalizeId = (value) => {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "object") {
+    // Mongo extended JSON
+    if (typeof value.$oid === "string") return value.$oid;
+    // Mongoose populated documents / nested ids
+    if (value._id) {
+      if (typeof value._id === "string") return value._id;
+      if (typeof value._id === "object" && typeof value._id.$oid === "string") return value._id.$oid;
+    }
+    if (typeof value.id === "string") return value.id;
+    if (typeof value.toHexString === "function") return value.toHexString();
+    if (typeof value._id === "string") return value._id;
+    if (typeof value.toString === "function") return value.toString();
+  }
+  return String(value);
+};
+
 const ChatContainer = () => {
   const {
     messages,
@@ -48,17 +67,26 @@ const ChatContainer = () => {
       <ChatHeader />
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
-          <div
-            key={message._id}
-            className={`chat ${message.senderId === authUser._id ? "chat-end" : "chat-start"}`}
-            ref={messageEndRef}
-          >
+        {messages.map((message) => {
+          const myId = normalizeId(authUser?._id);
+          const selectedId = normalizeId(selectedUser?._id);
+          const senderId = normalizeId(message.senderId);
+          const receiverId = normalizeId(message.receiverId);
+
+          // Prefer senderId comparison; fallback to receiverId when myId isn't ready
+          const isSentByMe = myId ? senderId === myId : selectedId ? receiverId === selectedId : false;
+
+          return (
+            <div
+              key={message._id}
+              className={`chat ${isSentByMe ? "chat-end" : "chat-start"}`}
+              ref={messageEndRef}
+            >
             <div className=" chat-image avatar">
               <div className="size-10 rounded-full border">
                 <img
                   src={
-                    message.senderId === authUser._id
+                    isSentByMe
                       ? authUser.profilePic || "/avatar.png"
                       : selectedUser.profilePic || "/avatar.png"
                   }
@@ -81,8 +109,9 @@ const ChatContainer = () => {
               )}
               {message.text && <p>{message.text}</p>}
             </div>
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
 
       <MessageInput />

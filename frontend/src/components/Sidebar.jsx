@@ -4,19 +4,46 @@ import { useAuthStore } from "../store/useAuthStore";
 import SidebarSkeleton from "./skeletons/SidebarSkeleton";
 import { Users } from "lucide-react";
 
+const normalizeId = (value) => {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "object") {
+    if (typeof value.$oid === "string") return value.$oid;
+    if (value._id) {
+      if (typeof value._id === "string") return value._id;
+      if (typeof value._id === "object" && typeof value._id.$oid === "string") return value._id.$oid;
+    }
+    if (typeof value.id === "string") return value.id;
+    if (typeof value.toHexString === "function") return value.toHexString();
+    if (typeof value._id === "string") return value._id;
+    if (typeof value.toString === "function") return value.toString();
+  }
+  return String(value);
+};
+
 const Sidebar = () => {
   const { getUsers, users, selectedUser, setSelectedUser, isUsersLoading } = useChatStore();
 
-  const { onlineUsers } = useAuthStore();
+  const { onlineUsers, authUser } = useAuthStore();
   const [showOnlineOnly, setShowOnlineOnly] = useState(false);
 
   useEffect(() => {
     getUsers();
   }, [getUsers]);
 
-  const filteredUsers = showOnlineOnly
-    ? users.filter((user) => onlineUsers.includes(user._id))
+  const authUserId = authUser?._id;
+  const usersWithoutMe = authUserId
+    ? users.filter((u) => normalizeId(u?._id) !== normalizeId(authUserId))
     : users;
+
+  const filteredUsers = showOnlineOnly
+    ? usersWithoutMe.filter((user) => onlineUsers.includes(user._id))
+    : usersWithoutMe;
+
+  const onlineWithoutMe = authUserId
+    ? onlineUsers.filter((id) => normalizeId(id) !== normalizeId(authUserId))
+    : onlineUsers;
+  const onlineCount = onlineWithoutMe.length;
 
   if (isUsersLoading) return <SidebarSkeleton />;
 
@@ -38,7 +65,7 @@ const Sidebar = () => {
             />
             <span className="text-sm">Show online only</span>
           </label>
-          <span className="text-xs text-zinc-500">({onlineUsers.length - 1} online)</span>
+          <span className="text-xs text-zinc-500">({onlineCount} online)</span>
         </div>
       </div>
 
@@ -69,7 +96,12 @@ const Sidebar = () => {
 
             {/* User info - only visible on larger screens */}
             <div className="hidden lg:block text-left min-w-0">
-              <div className="font-medium truncate">{user.fullName}</div>
+              <div className="font-medium truncate flex items-center justify-between gap-2">
+                <span className="truncate">{user.fullName}</span>
+                {user.unreadCount > 0 && (
+                  <span className="badge badge-primary badge-sm">{user.unreadCount}</span>
+                )}
+              </div>
               <div className="text-sm text-zinc-400">
                 {onlineUsers.includes(user._id) ? "Online" : "Offline"}
               </div>
@@ -78,7 +110,9 @@ const Sidebar = () => {
         ))}
 
         {filteredUsers.length === 0 && (
-          <div className="text-center text-zinc-500 py-4">No online users</div>
+          <div className="text-center text-zinc-500 py-4">
+            {showOnlineOnly ? "No online users" : "No contacts yet"}
+          </div>
         )}
       </div>
     </aside>

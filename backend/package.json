@@ -5,6 +5,8 @@
   "main": "src/index.js",
   "scripts": {
     "dev": "nodemon src/index.js",
+    "cleanup:users": "node src/scripts/cleanupUsers.js",
+    "seed": "node src/seeds/user.seed.js",
     "start": "node src/index.js"
   },
   "keywords": [],

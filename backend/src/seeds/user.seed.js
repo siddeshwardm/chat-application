@@ -1,8 +1,7 @@
-import { config } from "dotenv";
+import "../config/env.js";
 import { connectDB } from "../lib/db.js";
 import User from "../models/user.model.js";
-
-config();
+import bcrypt from "bcryptjs";
 
 const seedUsers = [
   // Female Users
@@ -102,9 +101,39 @@ const seedUsers = [
 
 const seedDatabase = async () => {
   try {
+    if (!process.env.MONGODB_URI) {
+      throw new Error("MONGODB_URI is not set");
+    }
+
     await connectDB();
 
-    await User.insertMany(seedUsers);
+    // Hash passwords (the app expects bcrypt hashes)
+    const salt = await bcrypt.genSalt(10);
+    const usersWithHashedPasswords = await Promise.all(
+      seedUsers.map(async (u) => ({
+        ...u,
+        password: await bcrypt.hash(u.password, salt),
+      }))
+    );
+
+    // Upsert so the seed can be run multiple times
+    await Promise.all(
+      usersWithHashedPasswords.map((u) =>
+        User.updateOne(
+          { email: u.email },
+          {
+            $setOnInsert: {
+              email: u.email,
+              fullName: u.fullName,
+              password: u.password,
+              profilePic: u.profilePic,
+            },
+          },
+          { upsert: true }
+        )
+      )
+    );
+
     console.log("Database seeded successfully");
   } catch (error) {
     console.error("Error seeding database:", error);

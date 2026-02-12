@@ -3,6 +3,10 @@ import User from "../models/user.model.js";
 
 export const protectRoute = async (req, res, next) => {
   try {
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({ message: "Server misconfigured - JWT_SECRET is missing" });
+    }
+
     const token = req.cookies.jwt;
 
     if (!token) {
@@ -26,6 +30,10 @@ export const protectRoute = async (req, res, next) => {
     next();
   } catch (error) {
     console.log("Error in protectRoute middleware: ", error.message);
+    if (error?.name === "JsonWebTokenError" || error?.name === "TokenExpiredError") {
+      return res.status(401).json({ message: "Unauthorized - Invalid or Expired Token" });
+    }
+
     res.status(500).json({ message: "Internal server error" });
   }
 };
