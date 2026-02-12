@@ -19,9 +19,17 @@ const __dirname = path.resolve();
 app.use(express.json({ limit: "15mb" }));
 app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 app.use(cookieParser());
+
+const defaultCorsOrigins = ["http://localhost:5173", "http://localhost:5174"];
+const corsOriginsFromEnv = (process.env.CORS_ORIGINS || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+const corsOrigins = corsOriginsFromEnv.length > 0 ? corsOriginsFromEnv : defaultCorsOrigins;
+
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:5174"],
+    origin: corsOrigins,
     credentials: true,
   })
 );

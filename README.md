@@ -86,14 +86,61 @@ npm run cleanup:users --prefix backend
 
 - Auth is cookie-based. To test **two different users at the same time**, use **two different browser contexts** (e.g. Chrome normal + Incognito, or separate Chrome profiles). Two tabs in the same profile share cookies.
 
-### Build the app
+## Deploy
 
-```shell
-npm run build
+### Recommended (works with Socket.IO)
+
+Vercel is great for the frontend, but Socket.IO needs a long-lived server process. The most reliable setup is:
+
+- **Frontend**: Vercel
+- **Backend**: Render / Railway / Fly.io (any Node host that supports WebSockets)
+
+#### 1) Deploy backend (Render/Railway/Fly)
+
+Set backend environment variables:
+
+```bash
+MONGODB_URI=...
+JWT_SECRET=...
+JWT_EXPIRES_IN=7d
+
+# allow your deployed frontend to call the API + connect sockets
+CORS_ORIGINS=https://<your-vercel-app>.vercel.app
+
+# If frontend + backend are on different domains, cookies must be cross-site
+COOKIE_SAMESITE=none
+COOKIE_SECURE=true
+
+CLOUDINARY_CLOUD_NAME=...
+CLOUDINARY_API_KEY=...
+CLOUDINARY_API_SECRET=...
+
+NODE_ENV=production
 ```
 
-### Start the app
+Start command:
 
-```shell
-npm start
+- `npm run start` (in the `backend` folder)
+
+#### 2) Deploy frontend on Vercel
+
+In Vercel:
+
+- **Root Directory**: `frontend`
+- **Framework Preset**: Vite
+- **Build Command**: `npm run build`
+- **Output Directory**: `dist`
+
+Set frontend environment variables in Vercel:
+
+```bash
+# point to your backend (include /api)
+VITE_API_BASE_URL=https://<your-backend-domain>/api
+
+# point to your backend origin for sockets (no /api)
+VITE_SOCKET_URL=https://<your-backend-domain>
 ```
+
+### All-on-Vercel?
+
+You can deploy the frontend on Vercel, but running the **Socket.IO backend** on Vercel serverless is not recommended for real-time features. If you want “all on Vercel”, you’ll need to replace Socket.IO with a hosted realtime provider (Ably/Pusher/etc) or another architecture.
