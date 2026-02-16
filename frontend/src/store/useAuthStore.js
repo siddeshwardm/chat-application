@@ -181,6 +181,11 @@ export const useAuthStore = create((set, get) => ({
 
     const socket = io(BASE_URL, {
       withCredentials: true,
+      transports: ["websocket", "polling"],
+      timeout: 10000,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 500,
       auth: {
         // optional: backend will prefer JWT cookie if present
         userId: authUser._id,

@@ -70,9 +70,33 @@ export const useChatStore = create((set, get) => ({
   sendMessage: async (messageData) => {
     const { selectedUser, messages } = get();
     try {
+      const myId = normalizeId(useAuthStore.getState().authUser?._id);
+      const receiverId = normalizeId(selectedUser?._id);
+
+      const tempId = `temp-${Date.now()}`;
+      const optimisticMessage = {
+        _id: tempId,
+        senderId: myId,
+        receiverId,
+        text: messageData?.text || "",
+        image: messageData?.image || undefined,
+        createdAt: new Date().toISOString(),
+        seen: false,
+        pending: true,
+      };
+
+      set({ messages: sortByCreatedAtAsc([...messages, optimisticMessage]) });
+
       const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
-      set({ messages: sortByCreatedAtAsc([...messages, res.data]) });
+      set({
+        messages: sortByCreatedAtAsc(
+          get().messages.map((m) => (normalizeId(m?._id) === tempId ? res.data : m))
+        ),
+      });
     } catch (error) {
+      // Remove optimistic message if send failed
+      set({ messages: get().messages.filter((m) => !String(m?._id || "").startsWith("temp-")) });
+
       if (error?.response?.status === 401) {
         await useAuthStore.getState().logout();
         toast.error("Session expired. Please log in again.");

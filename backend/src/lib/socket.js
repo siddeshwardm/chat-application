@@ -27,6 +27,12 @@ export function getReceiverSocketId(userId) {
   return sockets.values().next().value;
 }
 
+export function getReceiverSocketIds(userId) {
+  const sockets = userSocketMap[userId];
+  if (!sockets) return [];
+  return Array.from(sockets);
+}
+
 // used to store online users
 const userSocketMap = {}; // { [userId]: Set<socketId> }
 
