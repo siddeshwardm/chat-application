@@ -6,6 +6,31 @@ import { io } from "socket.io-client";
 const DEFAULT_SOCKET_URL = import.meta.env.MODE === "development" ? "http://localhost:5001" : "/";
 const BASE_URL = import.meta.env.VITE_SOCKET_URL || DEFAULT_SOCKET_URL;
 
+const isProbablyVercel = () => {
+  if (typeof window === "undefined") return false;
+  return Boolean(window.location?.hostname?.includes("vercel.app"));
+};
+
+const isRelativeApiBaseUrl = () => {
+  const baseURL = axiosInstance?.defaults?.baseURL;
+  return typeof baseURL === "string" && baseURL.startsWith("/");
+};
+
+const maybeShowDeploymentMisconfigToast = (error) => {
+  const status = error?.response?.status;
+
+  // On Vercel, if API baseURL is relative ('/api') and you hit a 404,
+  // it usually means the frontend is calling Vercel instead of your backend.
+  if (status === 404 && isProbablyVercel() && isRelativeApiBaseUrl()) {
+    toast.error(
+      "Backend API is not configured. In Vercel env vars set VITE_BACKEND_URL (recommended) or VITE_API_BASE_URL, then redeploy."
+    );
+    return true;
+  }
+
+  return false;
+};
+
 if (
   import.meta.env.MODE !== "development" &&
   !import.meta.env.VITE_SOCKET_URL &&
@@ -79,6 +104,8 @@ export const useAuthStore = create((set, get) => ({
       const serverMessage = error?.response?.data?.message;
       if (serverMessage) return toast.error(serverMessage);
 
+      if (maybeShowDeploymentMisconfigToast(error)) return;
+
       if (!error?.response) {
         return toast.error(
           "Cannot reach server. Check deployed API URL (VITE_API_BASE_URL or VITE_BACKEND_URL) and backend CORS/cookies."
@@ -102,6 +129,8 @@ export const useAuthStore = create((set, get) => ({
     } catch (error) {
       const serverMessage = error?.response?.data?.message;
       if (serverMessage) return toast.error(serverMessage);
+
+      if (maybeShowDeploymentMisconfigToast(error)) return;
 
       if (!error?.response) {
         return toast.error(

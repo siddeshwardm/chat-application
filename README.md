@@ -97,6 +97,10 @@ Vercel is great for the frontend, but Socket.IO needs a long-lived server proces
 
 #### 1) Deploy backend (Render/Railway/Fly)
 
+After deploy, verify your backend is reachable:
+
+- `https://<your-backend-domain>/api/health` should return `{ ok: true, ... }`
+
 Set backend environment variables:
 
 ```bash
