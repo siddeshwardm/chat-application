@@ -20,8 +20,8 @@ const normalizeId = (value) => {
   return String(value);
 };
 
-const sortByCreatedAtAsc = (items) =>
-  [...items].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+// Messages are already fetched sorted (backend sorts by createdAt asc).
+// Avoid re-sorting the entire list on every append (can cause UI jank).
 
 export const useChatStore = create((set, get) => ({
   messages: [],
@@ -85,13 +85,11 @@ export const useChatStore = create((set, get) => ({
         pending: true,
       };
 
-      set({ messages: sortByCreatedAtAsc([...messages, optimisticMessage]) });
+      set({ messages: [...messages, optimisticMessage] });
 
       const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
       set({
-        messages: sortByCreatedAtAsc(
-          get().messages.map((m) => (normalizeId(m?._id) === tempId ? res.data : m))
-        ),
+        messages: get().messages.map((m) => (normalizeId(m?._id) === tempId ? res.data : m)),
       });
     } catch (error) {
       // Remove optimistic message if send failed
@@ -127,7 +125,7 @@ export const useChatStore = create((set, get) => ({
       if (isInOpenConversation) {
         // Message is for the open chat: append and clear unread badge
         set({
-          messages: sortByCreatedAtAsc([...get().messages, newMessage]),
+          messages: [...get().messages, newMessage],
           users: get().users.map((u) =>
             normalizeId(u._id) === senderId ? { ...u, unreadCount: 0 } : u
           ),
