@@ -25,7 +25,6 @@ Create a `.env` file in the repo root (`fullstack-chat-app/.env`):
 MONGODB_URI=...
 PORT=5001
 JWT_SECRET=...
-JWT_EXPIRES_IN=7d
 
 CLOUDINARY_CLOUD_NAME=...
 CLOUDINARY_API_KEY=...
@@ -93,7 +92,7 @@ npm run cleanup:users --prefix backend
 Vercel is great for the frontend, but Socket.IO needs a long-lived server process. The most reliable setup is:
 
 - **Frontend**: Vercel
-- **Backend**: Render / Railway / Fly.io (any Node host that supports WebSockets)
+- **Backend**: Render / Railway
 
 #### 1) Deploy backend (Render/Railway/Fly)
 
@@ -106,7 +105,6 @@ Set backend environment variables:
 ```bash
 MONGODB_URI=...
 JWT_SECRET=...
-JWT_EXPIRES_IN=7d
 
 # allow your deployed frontend to call the API + connect sockets (comma-separated)
 CORS_ORIGINS=https://<your-vercel-app>.vercel.app,http://localhost:5173
